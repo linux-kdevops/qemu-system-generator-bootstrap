@@ -4,12 +4,14 @@
 
 Usage: ./guides hunk REV PATH [--indent N]
        ./guides check QSG_DIR [GUIDE...]
+       ./guides sync QSG_DIR [GUIDE...]
 
 hunk prints what REV changed in PATH, from the --- line on, as the guides
 show it. check reads every guide of QSG_DIR that has a branch here and
 holds each captioned block to the branch: a diff block must equal the
 hunk of one commit, a file block the file at one commit, and the commits
-must come in the order of the blocks.
+must come in the order of the blocks. sync also rewrites a diff block
+that differs from its commit's hunk only in a hunk's counts.
 """
 import os
 import re
@@ -50,23 +52,46 @@ def git(*args):
     ).stdout
 
 
+EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+
+def parent(rev):
+    try:
+        return git("rev-parse", "--verify", "--quiet", f"{rev}^").strip()
+    except subprocess.CalledProcessError:
+        return EMPTY_TREE
+
+
 def hunk(rev, path):
     # A fixed algorithm, context and prefix, whatever the user's
     # configuration. An empty context line loses its space: the guides
     # cannot carry trailing whitespace, and git apply and patch both take
-    # an empty line as empty context.
+    # an empty line as empty context. A block cannot end in one, so empty
+    # context lines at the end come off, and the counts in their hunk's
+    # @@ line with them, which keeps the block a patch git apply takes.
     out = git(
         "diff", "--no-color", "--no-ext-diff", "--no-textconv",
         "--diff-algorithm=myers", "--unified=3",
         "--src-prefix=a/", "--dst-prefix=b/",
-        f"{rev}^", rev, "--", path,
+        parent(rev), rev, "--", path,
     )
     lines = out.split("\n")
     start = next((i for i, line in enumerate(lines) if line.startswith("--- ")), None)
     if start is None:
         return None
-    lines = ["" if line == " " else line for line in lines[start:]]
-    return "\n".join(lines).rstrip("\n")
+    # The last element is what follows git's final newline.
+    lines = ["" if line == " " else line for line in lines[start:-1]]
+    trimmed = 0
+    while lines[-1 - trimmed] == "":
+        trimmed += 1
+    if trimmed:
+        del lines[-trimmed:]
+        at = max(i for i, line in enumerate(lines) if line.startswith("@@ "))
+        m = re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(.*)", lines[at])
+        old = int(m.group(2) or 1) - trimmed
+        new = int(m.group(4) or 1) - trimmed
+        lines[at] = f"@@ -{m.group(1)},{old} +{m.group(3)},{new} @@{m.group(5)}"
+    return "\n".join(lines)
 
 
 def content(rev, path):
@@ -77,22 +102,27 @@ def content(rev, path):
 
 
 def blocks(rst):
+    # A block may sit inside another directive, such as a tab-item, so its
+    # options and body are indented three spaces past the directive.
     lines = open(rst).read().split("\n")
     i = 0
     while i < len(lines):
-        m = re.match(r"\.\. code-block:: (\S+)", lines[i])
+        m = re.match(r"( *)\.\. code-block:: (\S+)", lines[i])
         if not m:
             i += 1
             continue
-        lang, caption, start, j = m.group(1), None, i + 1, i + 1
-        while j < len(lines) and lines[j].startswith("   :"):
-            c = re.match(r"   :caption: (.*)", lines[j])
+        pad = m.group(1) + "   "
+        lang, caption, start, j = m.group(2), None, i + 1, i + 1
+        while j < len(lines) and lines[j].startswith(pad + ":"):
+            c = re.match(re.escape(pad) + r":caption: (.*)", lines[j])
             caption = c.group(1) if c else caption
             j += 1
         j += 1
-        body = []
-        while j < len(lines) and (lines[j].startswith("   ") or lines[j] == ""):
-            body.append(lines[j][3:])
+        body, end = [], j
+        while j < len(lines) and (lines[j].startswith(pad) or lines[j].strip() == ""):
+            body.append(lines[j][len(pad):])
+            if lines[j].strip():
+                end = j + 1
             j += 1
         i = j
         if not caption or lang == "console":
@@ -100,30 +130,48 @@ def blocks(rst):
         if lang != "diff" and not caption.startswith("~/"):
             continue
         path = caption[2:] if caption.startswith("~/") else caption
-        yield start, lang, path, "\n".join(body).rstrip("\n")
+        yield start, lang, path, "\n".join(body).rstrip("\n"), (j - len(body), end, pad)
 
 
-def check(qsg, only):
+def loose(text):
+    # A hunk with its counts left out, to find the commit behind a block
+    # that an older version of this tool printed.
+    return re.sub(r"(?m)^@@ -\d+(,\d+)? \+\d+(,\d+)? @@", "@@", text or "").rstrip("\n")
+
+
+def commits_of(branch, parent):
+    spec = [f"refs/heads/{branch}"]
+    if parent:
+        spec.append("^" + git("merge-base", branch, parent).strip())
+    return git("rev-list", "--reverse", *spec).split()
+
+
+def walk(qsg, only, fix):
     failed = 0
     for rst, branch, parent in GUIDES:
         if only and rst not in only and branch not in only:
             continue
-        spec = [f"refs/heads/{branch}"]
         try:
-            if parent:
-                spec.append("^" + git("merge-base", branch, parent).strip())
-            commits = git("rev-list", "--reverse", *spec).split()
+            commits = commits_of(branch, parent)
         except subprocess.CalledProcessError:
             print(f"{rst}: branch {branch} has no commits yet")
             failed += 1
             continue
-        at, matched = 0, 0
-        for line, lang, path, body in blocks(os.path.join(qsg, rst)):
+        path_rst = os.path.join(qsg, rst)
+        lines = open(path_rst).read().split("\n")
+        at, matched, synced, edits = 0, 0, 0, []
+        for line, lang, path, body, (first, end, pad) in blocks(path_rst):
             want = hunk if lang == "diff" else content
-            k = next(
-                (k for k in range(at, len(commits)) if want(commits[k], path) == body),
-                None,
-            )
+            k = next((k for k in range(at, len(commits)) if want(commits[k], path) == body), None)
+            if k is None and fix and lang == "diff":
+                k = next(
+                    (k for k in range(at, len(commits)) if loose(hunk(commits[k], path)) == loose(body)),
+                    None,
+                )
+                if k is not None:
+                    text = hunk(commits[k], path).split("\n")
+                    edits.append((first, end, [(pad + t) if t else "" for t in text]))
+                    synced += 1
             if k is None:
                 print(f"{rst}:{line}: no commit of {branch} after "
                       f"{commits[at][:12] if commits else '-'} matches this "
@@ -131,7 +179,11 @@ def check(qsg, only):
                 failed += 1
                 continue
             at, matched = k, matched + 1
-        print(f"{rst}: {matched} blocks match {branch}")
+        for first, end, text in reversed(edits):
+            lines[first:end] = text
+        if edits:
+            open(path_rst, "w").write("\n".join(lines))
+        print(f"{rst}: {matched} blocks match {branch}" + (f", {synced} rewritten" if fix else ""))
     return 1 if failed else 0
 
 
@@ -143,8 +195,8 @@ def main(argv):
             sys.exit(f"guides: {argv[1]} does not change {argv[2]}")
         print("\n".join((" " * indent + line) if line else "" for line in text.split("\n")))
         return 0
-    if len(argv) >= 2 and argv[0] == "check":
-        return check(argv[1], argv[2:])
+    if len(argv) >= 2 and argv[0] in ("check", "sync"):
+        return walk(argv[1], argv[2:], argv[0] == "sync")
     sys.exit(__doc__)
 
 
