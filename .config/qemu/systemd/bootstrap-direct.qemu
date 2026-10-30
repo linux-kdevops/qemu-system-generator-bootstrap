@@ -12,7 +12,6 @@ nographic=
 serial=mon:stdio
 kernel=%h/bootstrap/direct/result/kernel
 initrd=%h/bootstrap/direct/result/initrd
-append=console=ttyS0 console=hvc0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
 netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=vhost-vsock-pci-non-transitional,guest-cid=47
