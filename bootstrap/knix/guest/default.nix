@@ -29,6 +29,16 @@
   ];
 
   networking.hostName = "bootstrap";
+  systemd.network.networks = {
+    "10-lan-bootstrap" = {
+      matchConfig.MACAddress = "52:54:00:00:00:49";
+      address = [ "10.0.100.49/24" ];
+    };
+    "10-lan-peer" = {
+      matchConfig.MACAddress = "52:54:00:00:00:50";
+      address = [ "10.0.100.50/24" ];
+    };
+  };
 
   # Build a package from a local source checkout. The matching
   # fio-src input must be declared in flake.nix.
