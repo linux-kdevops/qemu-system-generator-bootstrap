@@ -17,7 +17,7 @@
     # revision via a subtree or vendored copy and should not
     # track upstream HEAD. For upstream, use:
     #   knix.url = "github:linux-kdevops/knix";
-    knix.url = "path:/path/to/knix";
+    knix.url = "github:linux-kdevops/knix";
     nixpkgs.follows = "knix/nixpkgs";
 
     # Local source checkouts (uncomment to use). Multi-attribute
