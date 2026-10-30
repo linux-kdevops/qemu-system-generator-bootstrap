@@ -1,0 +1,3 @@
+[QEMU]
+drive=file=Fedora-Cloud-Base-Generic-44-1.7.x86_64.qcow2,if=virtio,format=qcow2
+device=vhost-vsock-pci-non-transitional,guest-cid=52
