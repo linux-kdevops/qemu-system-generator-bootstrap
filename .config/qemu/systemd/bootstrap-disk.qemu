@@ -13,3 +13,10 @@ drive=file=%h/bootstrap/disk/efi/bootstrap.qcow2,if=virtio,format=qcow2,snapshot
 netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10042-:22
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
 device=vhost-vsock-pci-non-transitional,guest-cid=42
+
+[virtiofsd]
+shared-dir=%h
+tag=home
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
