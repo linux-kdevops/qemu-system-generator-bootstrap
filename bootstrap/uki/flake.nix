@@ -12,6 +12,7 @@
         modules = [
           ./configuration.nix
           ./uki.nix
+          ./home.nix
         ];
       };
       packages.${system} = {
