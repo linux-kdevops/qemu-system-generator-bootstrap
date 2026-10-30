@@ -25,3 +25,13 @@ tag=store
 sandbox=namespace
 uid-map=:0:%U:1:
 gid-map=:0:%G:1:
+
+[Unit]
+Description=NixOS Bootstrap Guest
+
+[Service]
+MemoryMax=3G
+CPUWeight=50
+
+[Install]
+WantedBy=machines.target
