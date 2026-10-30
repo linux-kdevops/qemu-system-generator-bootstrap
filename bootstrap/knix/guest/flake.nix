@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: copyleft-next-0.3.1
+#
+# Imageless NixOS VM starter.
+#
+# Create with:
+#   nix flake init --template "github:linux-kdevops/knix"
+#   nix build .#nixosConfigurations.vm.config.system.build.toplevel
+#
+# Per-VM configuration lives in ./default.nix. This flake composes
+# the base modules, applies the overlay, and passes knix and
+# the flake inputs through specialArgs so default.nix can import
+# additional modules (for example knix.nixosModules.testSuites.*)
+# and reference local source inputs without re-declaring them.
+{
+  inputs = {
+    # Local checkout preferred: consumers pin to a specific
+    # revision via a subtree or vendored copy and should not
+    # track upstream HEAD. For upstream, use:
+    #   knix.url = "github:linux-kdevops/knix";
+    knix.url = "path:/path/to/knix";
+    nixpkgs.follows = "knix/nixpkgs";
+
+    # Local source checkouts (uncomment to use). Multi-attribute
+    # non-flake inputs decompose into the type/path or type/url
+    # attribute-set form so each piece (type, source, ref,
+    # submodules) reads on its own line:
+    #
+    #   fio-src = {
+    #     type = "path";
+    #     path = "/home/user/src/fio";
+    #     flake = false;
+    #   };
+    #   kmod-src = {
+    #     type = "git";
+    #     url = "https://git.kernel.org/pub/scm/utils/kernel/kmod/kmod.git";
+    #     ref = "master";
+    #     flake = false;
+    #   };
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      knix,
+      ...
+    }@inputs:
+    let
+      system = "x86_64-linux";
+    in
+    {
+      nixosConfigurations.vm = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs knix; };
+        modules = [
+          knix.nixosModules.backends.imageless
+          knix.nixosModules.user
+          { nixpkgs.overlays = [ knix.overlays.default ]; }
+          ./default.nix
+        ];
+      };
+
+      packages.${system} = {
+        # System closure for the imageless VM: result/init for the
+        # kernel command line, result/initrd for QEMU's -initrd
+        # (boot.json names both); the kernel is the consumer's own.
+        # The closure itself is what virtiofsd serves to the guest as
+        # /nix/store.
+        # Run: nix build .#toplevel  (or .#packages.<system>.toplevel)
+        toplevel = self.nixosConfigurations.vm.config.system.build.toplevel;
+
+        # The VM's own systemPackages as one directory of symlinks, for
+        # running the same binaries where there is no guest.
+        # Run: nix build .#env  (then ./result/bin, or nix shell .#env)
+        env =
+          let
+            cfg = self.nixosConfigurations.vm;
+          in
+          cfg.pkgs.buildEnv {
+            name = "vm-env";
+            paths = cfg.config.environment.systemPackages;
+            # Two providers of one name (man pages, completions) is routine;
+            # the guest's own profile resolves them the same way.
+            ignoreCollisions = true;
+          };
+      }
+      # With knix.nixosModules.profiles.fast-boot in default.nix, the
+      # initramfs that boots the closure without the systemd one; the
+      # profile's header has the kernel command line it takes. Without
+      # the profile there is no such output, rather than one that fails
+      # to evaluate.
+      # Run: nix build .#minimal-initrd
+      // nixpkgs.lib.optionalAttrs (self.nixosConfigurations.vm.config.system.build ? minimalInitrd) {
+        minimal-initrd = self.nixosConfigurations.vm.config.system.build.minimalInitrd;
+      };
+    };
+}
