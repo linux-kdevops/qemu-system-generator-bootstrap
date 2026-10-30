@@ -9,4 +9,11 @@ nographic=
 serial=mon:stdio
 kernel=%h/bootstrap/direct/result/kernel
 initrd=%h/bootstrap/direct/result/initrd
-append=console=ttyS0
+append=console=ttyS0 init=/nix/store/i7s2903dhm9g5z73vkcbpggmv1iqnvwy-nixos-system-bootstrap-26.11.20261020.02c087f/init
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
