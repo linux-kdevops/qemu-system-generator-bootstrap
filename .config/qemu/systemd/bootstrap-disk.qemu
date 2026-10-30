@@ -7,3 +7,4 @@ m=2G
 smp=2
 nographic=
 serial=mon:stdio
+drive=file=%h/bootstrap/disk/result/bootstrap.qcow2,if=virtio,format=qcow2,snapshot=on
