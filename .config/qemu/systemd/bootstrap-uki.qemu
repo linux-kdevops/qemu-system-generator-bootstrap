@@ -9,6 +9,9 @@ nographic=
 serial=mon:stdio
 drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_CODE.fd
 drive=if=pflash,format=raw,snapshot=on,file=%h/bootstrap/uki/ovmf-fd/FV/OVMF_VARS.fd
+netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10046-:22
+device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+device=vhost-vsock-pci-non-transitional,guest-cid=46
 
 [virtiofsd]
 shared-dir=%h/bootstrap/uki/result/
