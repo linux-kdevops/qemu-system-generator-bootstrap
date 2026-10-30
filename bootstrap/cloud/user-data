@@ -2,3 +2,17 @@
 disable_root: false
 ssh_authorized_keys:
   - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
+write_files:
+  - path: /etc/fstab
+    append: true
+    content: |
+      home /home/user virtiofs defaults 0 0
+      none /home/user/.config/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+      none /home/user/.local/share/systemd tmpfs ro,nosuid,nodev,mode=0555 0 0
+      /root/.ssh /home/user/.ssh none bind 0 0
+runcmd:
+  - [mount, --mkdir, /home/user]
+  - [mount, --mkdir, /home/user/.config/systemd]
+  - [mount, --mkdir, /home/user/.local/share/systemd]
+  - [mount, --mkdir, /home/user/.ssh]
+  - [sed, --in-place, --regexp-extended, 's|^(root:([^:]*:){4})/root:|\1/home/user:|', /etc/passwd]
