@@ -1,0 +1,3 @@
+[QEMU]
+drive=file=debian-14-genericcloud-amd64-daily.qcow2,if=virtio,format=qcow2
+device=vhost-vsock-pci-non-transitional,guest-cid=43
