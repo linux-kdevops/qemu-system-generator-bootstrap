@@ -1,2 +1,2 @@
-instance-id: cloud-ubuntu
+instance-id: cloud-ubuntu-lan
 local-hostname: cloud-ubuntu
