@@ -21,6 +21,7 @@ device=vhost-vsock-pci-non-transitional,guest-cid=49
 [virtiofsd]
 shared-dir=/nix/store
 tag=store
+cache=always
 sandbox=namespace
 uid-map=:0:%U:1:
 gid-map=:0:%G:1:
