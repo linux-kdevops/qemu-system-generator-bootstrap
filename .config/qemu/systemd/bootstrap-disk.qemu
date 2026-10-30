@@ -1,0 +1,9 @@
+[QEMU]
+machine=q35
+nodefaults=
+accel=kvm
+cpu=host
+m=2G
+smp=2
+nographic=
+serial=mon:stdio
