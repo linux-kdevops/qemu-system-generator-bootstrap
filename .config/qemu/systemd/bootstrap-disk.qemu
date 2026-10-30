@@ -4,7 +4,7 @@ nodefaults=
 accel=kvm
 cpu=host
 m=2G
-smp=2
+smp=4
 nographic=
 serial=mon:stdio
 drive=if=pflash,format=raw,readonly=on,file=%h/bootstrap/disk/ovmf-fd/FV/OVMF_CODE.fd
