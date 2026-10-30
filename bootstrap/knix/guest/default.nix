@@ -25,9 +25,10 @@
     #   knix.nixosModules.profiles.build-tools
     #   knix.nixosModules.testSuites.fstests
     #   knix.nixosModules.testSuites.blktests
+    ./home.nix
   ];
 
-  networking.hostName = "vm";
+  networking.hostName = "bootstrap";
 
   # Build a package from a local source checkout. The matching
   # fio-src input must be declared in flake.nix.
@@ -36,6 +37,8 @@
   # ];
 
   # SSH keys for the root and unprivileged accounts.
-  # users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
-  # users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [ "ssh-ed25519 ..." ];
+  users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
+  users.users.${config.knix.user.name}.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAA... bootstrap"
+  ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
 }
