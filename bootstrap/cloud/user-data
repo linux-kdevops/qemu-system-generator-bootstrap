@@ -1,0 +1,4 @@
+#cloud-config
+disable_root: false
+ssh_authorized_keys:
+  - ssh-ed25519 AAAA... bootstrap # from ~/bootstrap/system/ssh/id_ed25519.pub
