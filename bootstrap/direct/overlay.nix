@@ -1,4 +1,5 @@
-inputs: final: prev: {
+inputs: final: prev:
+{
   fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (
     finalAttrs: previousAttrs: {
       version = "3.43";
@@ -30,4 +31,8 @@ inputs: final: prev: {
     src = inputs.xfstests;
     patches = [ ];
   };
+}
+// prev.lib.packagesFromDirectoryRecursive {
+  inherit (prev) callPackage;
+  directory = ./pkgs;
 }
