@@ -2,7 +2,13 @@
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
-  environment.systemPackages = [ pkgs.fio ];
+  environment.systemPackages = [
+    pkgs.damo
+    pkgs.fio
+    pkgs.nfstest
+    pkgs.pynfs
+    pkgs.xfstests
+  ];
   networking.hostName = "bootstrap";
   services.openssh.enable = true;
   users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
