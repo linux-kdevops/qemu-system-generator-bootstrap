@@ -16,3 +16,10 @@ tag=esp
 sandbox=namespace
 uid-map=:0:%U:1:
 gid-map=:0:%G:1:
+
+[virtiofsd]
+shared-dir=/nix/store
+tag=store
+sandbox=namespace
+uid-map=:0:%U:1:
+gid-map=:0:%G:1:
