@@ -1,4 +1,4 @@
-final: prev: {
+inputs: final: prev: {
   fio = (prev.fio.override { withGnuplot = true; }).overrideAttrs (
     finalAttrs: previousAttrs: {
       version = "3.43";
@@ -20,4 +20,14 @@ final: prev: {
       '';
     }
   );
+
+  xfstests = prev.xfstests.overrideAttrs {
+    version =
+      let
+        date = start: length: prev.lib.substring start length inputs.xfstests.lastModifiedDate;
+      in
+      "0-unstable-${date 0 4}-${date 4 2}-${date 6 2}";
+    src = inputs.xfstests;
+    patches = [ ];
+  };
 }

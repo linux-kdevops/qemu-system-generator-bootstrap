@@ -1,10 +1,16 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    xfstests = {
+      url = "git+https://git.kernel.org/pub/scm/fs/xfs/xfstests-dev.git?ref=for-next";
+      flake = false;
+    };
+  };
 
   outputs =
-    { self, nixpkgs }:
+    { self, nixpkgs, ... }@inputs:
     {
-      overlays.default = import ./overlay.nix;
+      overlays.default = import ./overlay.nix inputs;
 
       nixosConfigurations.bootstrap = nixpkgs.lib.nixosSystem {
         modules = [
