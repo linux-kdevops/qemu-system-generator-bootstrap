@@ -22,7 +22,7 @@
       };
       packages.x86_64-linux = {
         default = self.nixosConfigurations.bootstrap.config.system.build.toplevel;
-        inherit (self.nixosConfigurations.bootstrap.pkgs) fio xfstests;
+        inherit (self.nixosConfigurations.bootstrap.pkgs) damo fio xfstests;
       };
     };
 }
