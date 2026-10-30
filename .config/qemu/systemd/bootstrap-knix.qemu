@@ -5,6 +5,7 @@ SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 [QEMU]
 machine=q35
 nodefaults=
+bios=qboot.rom
 accel=kvm
 cpu=host
 m=2G
