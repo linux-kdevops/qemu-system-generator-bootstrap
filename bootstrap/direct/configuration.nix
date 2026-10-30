@@ -1,4 +1,4 @@
-{ modulesPath, ... }:
+{ lib, modulesPath, ... }:
 {
   imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
 
@@ -15,6 +15,18 @@
     };
   };
   services.openssh.enable = true;
+  services.openssh.hostKeys = [
+    {
+      type = "ed25519";
+      path = "/etc/ssh/ssh_host_ed25519_key";
+    }
+  ];
+  security.pam.services.sshd.startSession = lib.mkForce false;
+  console.enable = false;
+  systemd.suppressedSystemUnits = [
+    "systemd-journal-catalog-update.service"
+    "systemd-update-done.service"
+  ];
   users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... bootstrap" ]; # from ~/bootstrap/system/ssh/id_ed25519.pub
   users.users.root.initialHashedPassword = "";
 
