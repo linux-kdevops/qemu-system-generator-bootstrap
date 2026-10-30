@@ -31,6 +31,16 @@ inputs: final: prev:
     src = inputs.xfstests;
     patches = [ ];
   };
+
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (
+      python-final: python-prev:
+      prev.lib.packagesFromDirectoryRecursive {
+        inherit (python-final) callPackage;
+        directory = ./python-packages;
+      }
+    )
+  ];
 }
 // prev.lib.packagesFromDirectoryRecursive {
   inherit (prev) callPackage;
