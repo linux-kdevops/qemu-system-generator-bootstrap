@@ -14,6 +14,8 @@ kernel=%h/bootstrap/direct/result/kernel
 initrd=%h/bootstrap/direct/result/initrd
 netdev=user,id=net0,hostfwd=tcp:127.0.0.1:10047-:22
 device=virtio-net-pci-non-transitional,netdev=net0,romfile=
+netdev=dgram,id=lan,remote.type=inet,remote.host=239.255.0.1,remote.port=5556,local.type=inet,local.host=127.0.0.1,local.port=0
+device=virtio-net-pci-non-transitional,netdev=lan,mac=52:54:00:00:00:47,romfile=
 device=vhost-vsock-pci-non-transitional,guest-cid=47
 device=virtio-serial-pci-non-transitional
 chardev=socket,id=console0,path=%t/qemu-system/%i/console.sock,server=on,wait=off
