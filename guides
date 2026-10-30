@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: copyleft-next-0.3.1
+"""Print a guide step's hunk, or check a qemu-system-generator checkout.
+
+Usage: ./guides hunk REV PATH [--indent N]
+       ./guides check QSG_DIR [GUIDE...]
+
+hunk prints what REV changed in PATH, from the --- line on, as the guides
+show it. check reads every guide of QSG_DIR that has a branch here and
+holds each captioned block to the branch: a diff block must equal the
+hunk of one commit, a file block the file at one commit, and the commits
+must come in the order of the blocks.
+"""
+import os
+import re
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Guide, branch, and the branch it forks from: a forked guide's blocks
+# start after the fork.
+GUIDES = [
+    ("docs/bootstrap/direct.rst", "direct", None),
+    ("docs/bootstrap/packages.rst", "packages", "direct"),
+    ("docs/bootstrap/disk.rst", "disk", None),
+    ("docs/bootstrap/uki.rst", "uki", None),
+    ("docs/bootstrap/knix.rst", "knix", None),
+    ("docs/bootstrap/cloud.rst", "cloud", None),
+    ("docs/bootstrap/nixos.rst", "nixos", None),
+    ("docs/getting-started/example.rst", "example", None),
+]
+
+
+def common_dir(where):
+    r = subprocess.run(
+        ["git", "-C", where, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        capture_output=True, text=True,
+    )
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+# Run from a worktree of this repository, HEAD is that worktree's.
+WHERE = os.getcwd() if common_dir(os.getcwd()) == common_dir(HERE) else HERE
+
+
+def git(*args):
+    return subprocess.run(
+        ["git", "-C", WHERE, *args], capture_output=True, text=True, check=True
+    ).stdout
+
+
+def hunk(rev, path):
+    # A fixed algorithm, context and prefix, whatever the user's
+    # configuration. An empty context line loses its space: the guides
+    # cannot carry trailing whitespace, and git apply and patch both take
+    # an empty line as empty context.
+    out = git(
+        "diff", "--no-color", "--no-ext-diff", "--no-textconv",
+        "--diff-algorithm=myers", "--unified=3",
+        "--src-prefix=a/", "--dst-prefix=b/",
+        f"{rev}^", rev, "--", path,
+    )
+    lines = out.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.startswith("--- ")), None)
+    if start is None:
+        return None
+    lines = ["" if line == " " else line for line in lines[start:]]
+    return "\n".join(lines).rstrip("\n")
+
+
+def content(rev, path):
+    try:
+        return git("show", f"{rev}:{path}").rstrip("\n")
+    except subprocess.CalledProcessError:
+        return None
+
+
+def blocks(rst):
+    lines = open(rst).read().split("\n")
+    i = 0
+    while i < len(lines):
+        m = re.match(r"\.\. code-block:: (\S+)", lines[i])
+        if not m:
+            i += 1
+            continue
+        lang, caption, start, j = m.group(1), None, i + 1, i + 1
+        while j < len(lines) and lines[j].startswith("   :"):
+            c = re.match(r"   :caption: (.*)", lines[j])
+            caption = c.group(1) if c else caption
+            j += 1
+        j += 1
+        body = []
+        while j < len(lines) and (lines[j].startswith("   ") or lines[j] == ""):
+            body.append(lines[j][3:])
+            j += 1
+        i = j
+        if not caption or lang == "console":
+            continue
+        if lang != "diff" and not caption.startswith("~/"):
+            continue
+        path = caption[2:] if caption.startswith("~/") else caption
+        yield start, lang, path, "\n".join(body).rstrip("\n")
+
+
+def check(qsg, only):
+    failed = 0
+    for rst, branch, parent in GUIDES:
+        if only and rst not in only and branch not in only:
+            continue
+        spec = [f"refs/heads/{branch}"]
+        try:
+            if parent:
+                spec.append("^" + git("merge-base", branch, parent).strip())
+            commits = git("rev-list", "--reverse", *spec).split()
+        except subprocess.CalledProcessError:
+            print(f"{rst}: branch {branch} has no commits yet")
+            failed += 1
+            continue
+        at, matched = 0, 0
+        for line, lang, path, body in blocks(os.path.join(qsg, rst)):
+            want = hunk if lang == "diff" else content
+            k = next(
+                (k for k in range(at, len(commits)) if want(commits[k], path) == body),
+                None,
+            )
+            if k is None:
+                print(f"{rst}:{line}: no commit of {branch} after "
+                      f"{commits[at][:12] if commits else '-'} matches this "
+                      f"{'hunk' if lang == 'diff' else 'file'} of {path}")
+                failed += 1
+                continue
+            at, matched = k, matched + 1
+        print(f"{rst}: {matched} blocks match {branch}")
+    return 1 if failed else 0
+
+
+def main(argv):
+    if len(argv) >= 3 and argv[0] == "hunk":
+        indent = int(argv[argv.index("--indent") + 1]) if "--indent" in argv else 0
+        text = hunk(argv[1], argv[2])
+        if text is None:
+            sys.exit(f"guides: {argv[1]} does not change {argv[2]}")
+        print("\n".join((" " * indent + line) if line else "" for line in text.split("\n")))
+        return 0
+    if len(argv) >= 2 and argv[0] == "check":
+        return check(argv[1], argv[2:])
+    sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
