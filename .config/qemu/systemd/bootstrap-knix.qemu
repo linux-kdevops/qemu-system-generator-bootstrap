@@ -1,4 +1,5 @@
 [VM]
+QEMUBinary=%h/bootstrap/knix/qemu/destdir/bin/qemu-system-x86_64
 SSHPrivateKey=%h/bootstrap/system/ssh/id_ed25519
 
 [QEMU]
