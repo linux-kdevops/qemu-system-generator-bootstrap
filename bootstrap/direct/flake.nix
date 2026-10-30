@@ -8,6 +8,7 @@
         modules = [
           ./configuration.nix
           ./virtiofs.nix
+          ./home.nix
         ];
       };
       packages.x86_64-linux.default = self.nixosConfigurations.bootstrap.config.system.build.toplevel;
