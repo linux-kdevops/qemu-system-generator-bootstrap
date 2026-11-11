@@ -17,16 +17,18 @@ packages guide starts from; the other branches start from nothing.
 change there applies to the configuration.nix of any NixOS guide.
 `main` holds only this file, `guides` and `.gitignore`.
 
-| Branch     | Guide                               |
-|------------|-------------------------------------|
-| `direct`   | `docs/bootstrap/direct.rst`         |
-| `packages` | `docs/bootstrap/packages.rst`       |
-| `disk`     | `docs/bootstrap/disk.rst`           |
-| `uki`      | `docs/bootstrap/uki.rst`            |
-| `knix`     | `docs/bootstrap/knix.rst`           |
-| `cloud`    | `docs/bootstrap/cloud.rst`          |
-| `nixos`    | `docs/bootstrap/nixos.rst`          |
-| `example`  | `docs/getting-started/example.rst`  |
+| Branch       | Guide                               |
+|--------------|-------------------------------------|
+| `direct`     | `docs/bootstrap/direct.rst`         |
+| `packages`   | `docs/bootstrap/packages.rst`       |
+| `disk`       | `docs/bootstrap/disk.rst`           |
+| `uki`        | `docs/bootstrap/uki.rst`            |
+| `knix`       | `docs/bootstrap/knix.rst`           |
+| `cloud`      | `docs/bootstrap/cloud.rst`          |
+| `mkosi`      | `docs/bootstrap/mkosi.rst`          |
+| `libguestfs` | `docs/bootstrap/libguestfs.rst`     |
+| `nixos`      | `docs/bootstrap/nixos.rst`          |
+| `example`    | `docs/getting-started/example.rst`  |
 
 A diff block in a guide is what `./guides hunk REV PATH --indent 3`
 prints for the commit that makes the change: git's output from the

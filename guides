@@ -29,6 +29,8 @@ GUIDES = [
     ("docs/bootstrap/uki.rst", "uki", None),
     ("docs/bootstrap/knix.rst", "knix", None),
     ("docs/bootstrap/cloud.rst", "cloud", None),
+    ("docs/bootstrap/mkosi.rst", "mkosi", None),
+    ("docs/bootstrap/libguestfs.rst", "libguestfs", None),
     ("docs/bootstrap/nixos.rst", "nixos", None),
     ("docs/getting-started/example.rst", "example", None),
 ]
